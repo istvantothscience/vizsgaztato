@@ -116,8 +116,11 @@ const StudentEntryForm = ({ onBack }: { onBack: () => void }) => {
   const [selectedExam, setSelectedExam] = useState<any | null>(null);
 
   useEffect(() => {
-    const exams = loadExams();
-    setAllExams(exams);
+    const fetchExams = async () => {
+      const exams = await loadExams();
+      setAllExams(exams);
+    };
+    fetchExams();
   }, []);
 
   useEffect(() => {
@@ -129,9 +132,9 @@ const StudentEntryForm = ({ onBack }: { onBack: () => void }) => {
     }
   }, [examCode, allExams]);
 
-  const handleStart = (e: React.FormEvent) => {
+  const handleStart = async (e: React.FormEvent) => {
     e.preventDefault();
-    const exams = loadExams();
+    const exams = await loadExams();
     const exam = exams.find((e) => e.examCode.toLowerCase() === examCode.toLowerCase());
 
     if (!exam) {

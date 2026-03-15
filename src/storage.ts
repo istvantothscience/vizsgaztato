@@ -1,34 +1,44 @@
 import { ExamConfig, StudentSession } from "./types";
 import { STORAGE_KEYS } from "./constants";
+import { supabase } from "./supabase";
 
-export const saveExams = (exams: ExamConfig[]) => {
-  localStorage.setItem(STORAGE_KEYS.EXAMS, JSON.stringify(exams));
+export const loadExams = async (): Promise<ExamConfig[]> => {
+  const { data, error } = await supabase.from('exams').select('*');
+  if (error) {
+    console.error("Error loading exams:", error);
+    return [];
+  }
+  return data || [];
 };
 
-export const loadExams = (): ExamConfig[] => {
-  const data = localStorage.getItem(STORAGE_KEYS.EXAMS);
-  if (!data) return [];
-  try {
-    const parsed = JSON.parse(data);
-    return parsed.map((exam: any) => {
-      if (!exam.lifecycleStatus) {
-        exam.lifecycleStatus = exam.isActive ? "active" : "draft";
-      }
-      return exam;
-    });
-  } catch (e) {
-    console.error("Error parsing exams:", e);
-    return [];
+export const saveExam = async (exam: ExamConfig) => {
+  const { error } = await supabase.from('exams').upsert(exam);
+  if (error) {
+    console.error("Error saving exam:", error);
   }
 };
 
-export const saveSubmissions = (submissions: StudentSession[]) => {
-  localStorage.setItem(STORAGE_KEYS.SUBMISSIONS, JSON.stringify(submissions));
+export const deleteExamFromDb = async (id: string) => {
+  const { error } = await supabase.from('exams').delete().eq('id', id);
+  if (error) {
+    console.error("Error deleting exam:", error);
+  }
 };
 
-export const loadSubmissions = (): StudentSession[] => {
-  const data = localStorage.getItem(STORAGE_KEYS.SUBMISSIONS);
-  return data ? JSON.parse(data) : [];
+export const loadSubmissions = async (): Promise<StudentSession[]> => {
+  const { data, error } = await supabase.from('submissions').select('*');
+  if (error) {
+    console.error("Error loading submissions:", error);
+    return [];
+  }
+  return data || [];
+};
+
+export const saveSubmission = async (submission: StudentSession) => {
+  const { error } = await supabase.from('submissions').upsert(submission);
+  if (error) {
+    console.error("Error saving submission:", error);
+  }
 };
 
 export const saveCurrentSession = (session: StudentSession) => {

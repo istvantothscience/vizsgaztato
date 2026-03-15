@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { loadExams, saveExams } from "../../storage";
+import { loadExams, saveExam } from "../../storage";
 import { ExamConfig } from "../../types";
 import { v4 as uuidv4 } from "uuid";
 import { ArrowLeft, Save, Eye, Copy, Upload, FileText } from "lucide-react";
@@ -82,17 +82,20 @@ export const ExamEditor = () => {
 
   useEffect(() => {
     if (id && id !== "new") {
-      const exams = loadExams();
-      const existing = exams.find((e) => e.id === id);
-      if (existing) {
-        setExam(existing);
-      }
+      const fetchExam = async () => {
+        const exams = await loadExams();
+        const existing = exams.find((e) => e.id === id);
+        if (existing) {
+          setExam(existing);
+        }
+      };
+      fetchExam();
     } else {
       setExam({ ...DEFAULT_EXAM, id: uuidv4(), examCode: Math.random().toString(36).substring(2, 8).toUpperCase() });
     }
   }, [id]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!exam.title.trim()) {
       alert("A vizsga címe kötelező!");
       return;
@@ -106,17 +109,8 @@ export const ExamEditor = () => {
       }
     }
 
-    const exams = loadExams();
-    const index = exams.findIndex((e) => e.id === exam.id);
     const updatedExam = { ...exam, updatedAt: Date.now() };
-
-    if (index >= 0) {
-      exams[index] = updatedExam;
-    } else {
-      exams.push(updatedExam);
-    }
-
-    saveExams(exams);
+    await saveExam(updatedExam);
     navigate("/teacher");
   };
 
@@ -133,8 +127,8 @@ export const ExamEditor = () => {
     setExam({ ...exam, [field]: newTags });
   };
 
-  const handlePreview = () => {
-    const exams = loadExams();
+  const handlePreview = async () => {
+    const exams = await loadExams();
     const index = exams.findIndex((e) => e.id === exam.id);
     if (index === -1) {
       alert("Kérlek előbb mentsd el a vizsgát az előnézethez!");
@@ -160,7 +154,7 @@ export const ExamEditor = () => {
     });
   };
 
-  const handleSaveAsCopy = () => {
+  const handleSaveAsCopy = async () => {
     if (!exam.title.trim()) {
       alert("A vizsga címe kötelező!");
       return;
@@ -175,8 +169,7 @@ export const ExamEditor = () => {
     }
 
     const newExam = { ...exam, id: uuidv4(), title: `${exam.title} (Másolat)` };
-    const exams = loadExams();
-    saveExams([...exams, newExam]);
+    await saveExam(newExam);
     navigate("/teacher");
   };
 

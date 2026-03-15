@@ -12,17 +12,20 @@ export const ExamSummaryScreen = () => {
   const [exam, setExam] = useState<ExamConfig | null>(null);
 
   useEffect(() => {
-    const currentSession = loadCurrentSession();
-    const exams = loadExams();
-    const currentExam = exams.find((e) => e.id === id);
+    const init = async () => {
+      const currentSession = loadCurrentSession();
+      const exams = await loadExams();
+      const currentExam = exams.find((e) => e.id === id);
 
-    if (!currentSession || !currentExam || currentSession.examId !== id) {
-      navigate("/");
-      return;
-    }
+      if (!currentSession || !currentExam || currentSession.examId !== id) {
+        navigate("/");
+        return;
+      }
 
-    setSession(currentSession);
-    setExam(currentExam);
+      setSession(currentSession);
+      setExam(currentExam);
+    };
+    init();
   }, [id, navigate]);
 
   if (!session || !exam) return <div className="p-8 text-center">Betöltés...</div>;

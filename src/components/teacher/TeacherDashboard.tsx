@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { loadExams, loadSubmissions, saveExams } from "../../storage";
+import { loadExams, loadSubmissions, saveExam, deleteExamFromDb } from "../../storage";
 import { logoutTeacher } from "../../auth";
 import { ExamConfig, StudentSession, ExamLifecycleStatus } from "../../types";
 import { Plus, LogOut, Settings, FileText, Trash2, Copy, Download, Mail, RefreshCw, Info } from "lucide-react";
@@ -14,10 +14,20 @@ export const TeacherDashboard = () => {
   const [examFilter, setExamFilter] = useState<string>("");
   const [studentFilter, setStudentFilter] = useState<string>("");
   const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setExams(loadExams());
-    setSubmissions(loadSubmissions());
+    const fetchData = async () => {
+      setLoading(true);
+      const [loadedExams, loadedSubmissions] = await Promise.all([
+        loadExams(),
+        loadSubmissions()
+      ]);
+      setExams(loadedExams);
+      setSubmissions(loadedSubmissions);
+      setLoading(false);
+    };
+    fetchData();
   }, []);
 
   const handleLogout = () => {
@@ -25,22 +35,28 @@ export const TeacherDashboard = () => {
     navigate("/");
   };
 
-  const deleteExam = (id: string) => {
+  const deleteExam = async (id: string) => {
     if (window.confirm("Biztosan törlöd ezt a vizsgát?")) {
+      await deleteExamFromDb(id);
       const updated = exams.filter((e) => e.id !== id);
-      saveExams(updated);
       setExams(updated);
     }
   };
 
-  const handleStatusChange = (examId: string, newStatus: ExamLifecycleStatus) => {
+  const handleStatusChange = async (examId: string, newStatus: ExamLifecycleStatus) => {
     if (newStatus === "closed") {
       if (!window.confirm("Biztosan le szeretnéd zárni ezt a vizsgát? A diákok ezután nem tudják elindítani.")) {
         return;
       }
     }
-    const updatedExams = exams.map((e) => (e.id === examId ? { ...e, lifecycleStatus: newStatus } : e));
-    saveExams(updatedExams);
+    
+    const examToUpdate = exams.find(e => e.id === examId);
+    if (!examToUpdate) return;
+    
+    const updatedExam = { ...examToUpdate, lifecycleStatus: newStatus };
+    await saveExam(updatedExam);
+    
+    const updatedExams = exams.map((e) => (e.id === examId ? updatedExam : e));
     setExams(updatedExams);
     
     if (newStatus === "active") alert("A vizsga aktiválva.");
@@ -48,8 +64,9 @@ export const TeacherDashboard = () => {
     else if (newStatus === "draft") alert("A vizsga piszkozatba helyezve.");
   };
 
-  const handleRefreshSubmissions = () => {
-    setSubmissions(loadSubmissions());
+  const handleRefreshSubmissions = async () => {
+    const loadedSubmissions = await loadSubmissions();
+    setSubmissions(loadedSubmissions);
     setRefreshMessage("Az eredménylista frissítve.");
     setTimeout(() => setRefreshMessage(null), 3000);
   };

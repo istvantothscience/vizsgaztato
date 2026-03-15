@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { loadExams, loadCurrentSession, saveCurrentSession, saveSubmissions, loadSubmissions } from "../../storage";
+import { loadExams, loadCurrentSession, saveCurrentSession, saveSubmission } from "../../storage";
 import { ExamConfig, StudentSession, ChatMessage } from "../../types";
 import { startExamChat, sendStudentMessage } from "../../aiClient";
 import { FocusTracker } from "../../focusTracker";
@@ -29,40 +29,46 @@ export const ExamScreen = () => {
   }, [session?.status, session?.startedAt]);
 
   useEffect(() => {
-    const exams = loadExams();
-    const currentExam = exams.find((e) => e.id === id);
-    const currentSession = loadCurrentSession();
+    const init = async () => {
+      const exams = await loadExams();
+      const currentExam = exams.find((e) => e.id === id);
+      const currentSession = loadCurrentSession();
 
-    if (!currentExam || !currentSession || currentSession.examId !== id) {
-      navigate("/");
-      return;
-    }
+      if (!currentExam || !currentSession || currentSession.examId !== id) {
+        navigate("/");
+        return;
+      }
 
-    setExam(currentExam);
-    setSession(currentSession);
+      setExam(currentExam);
+      setSession(currentSession);
 
-    // Init Focus Tracker
-    const tracker = new FocusTracker((event) => {
-      setSession((prev) => {
-        if (!prev) return prev;
-        const updated = {
-          ...prev,
-          focusLossCount: prev.focusLossCount + 1,
-          focusEvents: [...prev.focusEvents, event],
-          messages: [
-            ...prev.messages,
-            { id: uuidv4(), role: "system" as const, content: `Figyelem: Az oldal elvesztette a fókuszt! (${event.detail})`, timestamp: Date.now() },
-          ],
-        };
-        saveCurrentSession(updated);
-        return updated;
+      // Init Focus Tracker
+      const tracker = new FocusTracker((event) => {
+        setSession((prev) => {
+          if (!prev) return prev;
+          const updated = {
+            ...prev,
+            focusLossCount: prev.focusLossCount + 1,
+            focusEvents: [...prev.focusEvents, event],
+            messages: [
+              ...prev.messages,
+              { id: uuidv4(), role: "system" as const, content: `Figyelem: Az oldal elvesztette a fókuszt! (${event.detail})`, timestamp: Date.now() },
+            ],
+          };
+          saveCurrentSession(updated);
+          return updated;
+        });
       });
-    });
-    tracker.start();
-    setFocusTracker(tracker);
+      tracker.start();
+      setFocusTracker(tracker);
+    };
+    init();
 
     return () => {
-      tracker.stop();
+      setFocusTracker((prev) => {
+        if (prev) prev.stop();
+        return null;
+      });
     };
   }, [id, navigate]);
 
@@ -154,8 +160,7 @@ export const ExamScreen = () => {
         };
         
         // Save to submissions
-        const allSub = loadSubmissions();
-        saveSubmissions([...allSub, newSession]);
+        await saveSubmission(newSession);
       }
 
       setSession(newSession);
