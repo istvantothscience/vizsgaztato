@@ -122,7 +122,7 @@ const StudentEntryForm = ({ onBack }: { onBack: () => void }) => {
 
   useEffect(() => {
     if (examCode) {
-      const exam = allExams.find(e => e.examCode === examCode);
+      const exam = allExams.find(e => e.examCode.toLowerCase() === examCode.toLowerCase());
       setSelectedExam(exam || null);
     } else {
       setSelectedExam(null);
@@ -132,7 +132,7 @@ const StudentEntryForm = ({ onBack }: { onBack: () => void }) => {
   const handleStart = (e: React.FormEvent) => {
     e.preventDefault();
     const exams = loadExams();
-    const exam = exams.find((e) => e.examCode === examCode);
+    const exam = exams.find((e) => e.examCode.toLowerCase() === examCode.toLowerCase());
 
     if (!exam) {
       setError("Nem található vizsga ezzel a kóddal.");
