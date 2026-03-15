@@ -33,12 +33,15 @@ export const sendStudentMessage = async (
   const ai = getAIClient();
   const systemPrompt = buildSystemPrompt(exam);
 
-  const contents = history
-    .filter((msg) => msg.role !== "system")
-    .map((msg) => ({
-      role: msg.role === "assistant" ? "model" : "user",
-      parts: [{ text: msg.content }],
-    }));
+  const contents = [
+    { role: "user", parts: [{ text: "Kezdjük a vizsgát!" }] },
+    ...history
+      .filter((msg) => msg.role !== "system")
+      .map((msg) => ({
+        role: msg.role === "assistant" ? "model" : "user",
+        parts: [{ text: msg.content }],
+      }))
+  ];
 
   const response = await ai.models.generateContent({
     model: "gemini-3.1-pro-preview",

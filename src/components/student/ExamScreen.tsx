@@ -74,26 +74,29 @@ export const ExamScreen = () => {
 
   useEffect(() => {
     // Start exam if idle
-    if (exam && session && session.status === "idle" && session.messages.length === 0) {
-      initExam(exam, session);
+    if (exam && session && session.status === "idle" && !isLoading) {
+      initExam(exam);
     }
-  }, [exam, session]);
+  }, [exam, session, isLoading]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [session?.messages]);
 
-  const initExam = async (examConf: ExamConfig, sess: StudentSession) => {
+  const initExam = async (examConf: ExamConfig) => {
     setIsLoading(true);
     try {
       const response = await startExamChat(examConf);
-      const updatedSession = {
-        ...sess,
-        status: "running" as const,
-        messages: [{ id: uuidv4(), role: "assistant" as const, content: response, timestamp: Date.now() }],
-      };
-      setSession(updatedSession);
-      saveCurrentSession(updatedSession);
+      setSession((prev) => {
+        if (!prev) return prev;
+        const updatedSession = {
+          ...prev,
+          status: "running" as const,
+          messages: [...prev.messages, { id: uuidv4(), role: "assistant" as const, content: response, timestamp: Date.now() }],
+        };
+        saveCurrentSession(updatedSession);
+        return updatedSession;
+      });
     } catch (error) {
       console.error(error);
       alert("Hiba történt az AI inicializálásakor.");
@@ -133,16 +136,17 @@ export const ExamScreen = () => {
       }
 
       const aiMsg: ChatMessage = { id: uuidv4(), role: "assistant", content: aiText || "Vizsga lezárva.", timestamp: Date.now() };
-      
       const isFinished = !!finalSummaryObj;
       
+      const latestSession = loadCurrentSession() || tempSession;
+
       const newSession: StudentSession = {
-        ...tempSession,
-        messages: [...updatedMessages, aiMsg],
-        currentQuestionIndex: tempSession.currentQuestionIndex + 1,
+        ...latestSession,
+        messages: [...latestSession.messages, aiMsg],
+        currentQuestionIndex: latestSession.currentQuestionIndex + 1,
         status: isFinished ? "finished" : "running",
         finishedAt: isFinished ? Date.now() : undefined,
-        elapsedSeconds: Math.floor((Date.now() - tempSession.startedAt) / 1000),
+        elapsedSeconds: Math.floor((Date.now() - latestSession.startedAt) / 1000),
       };
 
       if (isFinished && finalSummaryObj) {
@@ -158,15 +162,14 @@ export const ExamScreen = () => {
           percentage: finalSummaryObj.percentage || 0,
           grade: calculateGrade(finalSummaryObj.percentage || 0, exam.gradingScale),
         };
-        
-        // Save to submissions
-        await saveSubmission(newSession);
       }
-
+      
       setSession(newSession);
       saveCurrentSession(newSession);
 
       if (isFinished) {
+        // Save to submissions
+        await saveSubmission(newSession);
         focusTracker?.stop();
         navigate(`/exam/${exam.id}/summary`);
       }
