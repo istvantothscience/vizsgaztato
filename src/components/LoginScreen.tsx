@@ -12,8 +12,7 @@ export const LoginScreen = () => {
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden">
         <div className="p-8 text-center bg-blue-600 text-white">
           <BookOpen className="w-12 h-12 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold">Vizsgabiztos</h1>
-          <p className="text-blue-100 mt-2">10. osztályos szóbeli mini vizsga</p>
+          <h1 className="text-2xl font-bold">School Lab Feleltető3000</h1>
         </div>
 
         <div className="p-8">
@@ -45,6 +44,10 @@ export const LoginScreen = () => {
           ) : (
             <StudentEntryForm onBack={() => setRole(null)} />
           )}
+        </div>
+        
+        <div className="bg-slate-50 p-4 text-center border-t border-slate-100">
+          <p className="text-sm text-slate-400 font-medium">made by schoollab</p>
         </div>
       </div>
     </div>
