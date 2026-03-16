@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { loadCurrentSession, loadExams } from "../../storage";
 import { ExamConfig, StudentSession } from "../../types";
-import { sendEmailReport, downloadTextReport, downloadJsonReport, buildExamReport } from "../../reportUtils";
-import { CheckCircle, Mail, Download, FileText, ArrowLeft, Award, Clock, AlertTriangle, Copy } from "lucide-react";
+import { sendEmailReport, buildExamReport } from "../../reportUtils";
+import { CheckCircle, Mail, ArrowLeft, Award, Clock, AlertTriangle } from "lucide-react";
 
 export const ExamSummaryScreen = () => {
   const { id } = useParams();
@@ -12,6 +12,7 @@ export const ExamSummaryScreen = () => {
   const [exam, setExam] = useState<ExamConfig | null>(null);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [emailStatus, setEmailStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+  const [emailContent, setEmailContent] = useState<string>("");
 
   useEffect(() => {
     const init = async () => {
@@ -26,6 +27,7 @@ export const ExamSummaryScreen = () => {
 
       setSession(currentSession);
       setExam(currentExam);
+      setEmailContent(buildExamReport(currentSession, currentExam));
     };
     init();
   }, [id, navigate]);
@@ -111,13 +113,23 @@ export const ExamSummaryScreen = () => {
           )}
         </div>
 
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-left">
+          <h3 className="font-bold text-slate-800 mb-2">E-mail tartalmának ellenőrzése és szerkesztése</h3>
+          <p className="text-sm text-slate-500 mb-4">Küldés előtt átnézheted, szerkesztheted vagy kimásolhatod a vizsgariportot.</p>
+          <textarea
+            value={emailContent}
+            onChange={(e) => setEmailContent(e.target.value)}
+            className="w-full h-64 p-4 border border-slate-300 rounded-xl font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-y"
+          />
+        </div>
+
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <div className="flex flex-col items-center gap-2">
             <button
               onClick={async () => {
                 setIsSendingEmail(true);
                 setEmailStatus(null);
-                const result = await sendEmailReport(session, exam);
+                const result = await sendEmailReport(session, exam, emailContent);
                 setIsSendingEmail(false);
                 if (result.success) {
                   setEmailStatus({ type: 'success', message: 'E-mail sikeresen elküldve a tanárnak!' });
@@ -143,30 +155,6 @@ export const ExamSummaryScreen = () => {
             <span className="text-xs text-slate-500 text-center max-w-xs">
               Az eredmény automatikusan elküldésre kerül a tanár e-mail címére.
             </span>
-          </div>
-          
-          <div className="flex gap-2">
-            <button
-              onClick={() => navigator.clipboard.writeText(buildExamReport(session, exam)).then(() => alert("Riport másolva a vágólapra!"))}
-              className="flex-1 flex items-center justify-center gap-2 bg-white text-slate-700 border border-slate-200 px-4 py-3 rounded-xl hover:bg-slate-50 transition-colors font-medium shadow-sm"
-            >
-              <Copy className="w-5 h-5" />
-              Másolás
-            </button>
-            <button
-              onClick={() => downloadTextReport(session, exam)}
-              className="flex-1 flex items-center justify-center gap-2 bg-white text-slate-700 border border-slate-200 px-4 py-3 rounded-xl hover:bg-slate-50 transition-colors font-medium shadow-sm"
-            >
-              <FileText className="w-5 h-5" />
-              TXT Letöltés
-            </button>
-            <button
-              onClick={() => downloadJsonReport(session)}
-              className="flex-1 flex items-center justify-center gap-2 bg-white text-slate-700 border border-slate-200 px-4 py-3 rounded-xl hover:bg-slate-50 transition-colors font-medium shadow-sm"
-            >
-              <Download className="w-5 h-5" />
-              JSON Letöltés
-            </button>
           </div>
         </div>
 
