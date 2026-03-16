@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { loadCurrentSession, loadExams } from "../../storage";
 import { ExamConfig, StudentSession } from "../../types";
-import { sendEmailReport, buildExamReport } from "../../reportUtils";
+import { sendEmailReport } from "../../reportUtils";
 import { CheckCircle, Mail, ArrowLeft, Award, Clock, AlertTriangle } from "lucide-react";
 
 export const ExamSummaryScreen = () => {
@@ -12,7 +12,6 @@ export const ExamSummaryScreen = () => {
   const [exam, setExam] = useState<ExamConfig | null>(null);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [emailStatus, setEmailStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
-  const [emailContent, setEmailContent] = useState<string>("");
 
   useEffect(() => {
     const init = async () => {
@@ -27,7 +26,6 @@ export const ExamSummaryScreen = () => {
 
       setSession(currentSession);
       setExam(currentExam);
-      setEmailContent(buildExamReport(currentSession, currentExam));
     };
     init();
   }, [id, navigate]);
@@ -113,23 +111,13 @@ export const ExamSummaryScreen = () => {
           )}
         </div>
 
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-left">
-          <h3 className="font-bold text-slate-800 mb-2">E-mail tartalmának ellenőrzése és szerkesztése</h3>
-          <p className="text-sm text-slate-500 mb-4">Küldés előtt átnézheted, szerkesztheted vagy kimásolhatod a vizsgariportot.</p>
-          <textarea
-            value={emailContent}
-            onChange={(e) => setEmailContent(e.target.value)}
-            className="w-full h-64 p-4 border border-slate-300 rounded-xl font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-y"
-          />
-        </div>
-
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <div className="flex flex-col items-center gap-2">
             <button
               onClick={async () => {
                 setIsSendingEmail(true);
                 setEmailStatus(null);
-                const result = await sendEmailReport(session, exam, emailContent);
+                const result = await sendEmailReport(session, exam);
                 setIsSendingEmail(false);
                 if (result.success) {
                   setEmailStatus({ type: 'success', message: 'E-mail sikeresen elküldve a tanárnak!' });

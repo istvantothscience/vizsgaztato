@@ -44,8 +44,8 @@ export const buildExamReport = (session: StudentSession, exam: ExamConfig): stri
   return report;
 };
 
-export const sendEmailReport = async (session: StudentSession, exam: ExamConfig, customReport?: string, teacherEmail: string = "92istvantoth@gmail.com") => {
-  const report = customReport || buildExamReport(session, exam);
+export const sendEmailReport = async (session: StudentSession, exam: ExamConfig, teacherEmail: string = "92istvantoth@gmail.com") => {
+  const report = buildExamReport(session, exam);
   const subject = `AI vizsga (${exam.subject}) - ${session.studentName} - ${exam.title}`;
   
   try {
