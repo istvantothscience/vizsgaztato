@@ -28,6 +28,8 @@ export const ExamScreen = () => {
     return () => clearInterval(interval);
   }, [session?.status, session?.startedAt]);
 
+  const [initFailed, setInitFailed] = useState(false);
+
   useEffect(() => {
     const init = async () => {
       const exams = await loadExams();
@@ -74,10 +76,10 @@ export const ExamScreen = () => {
 
   useEffect(() => {
     // Start exam if idle
-    if (exam && session && session.status === "idle" && !isLoading) {
+    if (exam && session && session.status === "idle" && !isLoading && !initFailed) {
       initExam(exam);
     }
-  }, [exam, session, isLoading]);
+  }, [exam, session, isLoading, initFailed]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -85,6 +87,7 @@ export const ExamScreen = () => {
 
   const initExam = async (examConf: ExamConfig) => {
     setIsLoading(true);
+    setInitFailed(false);
     try {
       const response = await startExamChat(examConf);
       setSession((prev) => {
@@ -97,9 +100,10 @@ export const ExamScreen = () => {
         saveCurrentSession(updatedSession);
         return updatedSession;
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert("Hiba történt az AI inicializálásakor.");
+      setInitFailed(true);
+      alert(error?.message || "Hiba történt az AI inicializálásakor.");
     } finally {
       setIsLoading(false);
     }
@@ -173,9 +177,14 @@ export const ExamScreen = () => {
         focusTracker?.stop();
         navigate(`/exam/${exam.id}/summary`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert("Hiba történt a válasz küldésekor.");
+      alert(error?.message || "Hiba történt a válasz küldésekor.");
+      
+      // Revert the session back to before the user's message was added
+      setSession(session);
+      saveCurrentSession(session);
+      setInput(userMsg.content);
     } finally {
       setIsLoading(false);
     }
@@ -245,6 +254,16 @@ export const ExamScreen = () => {
               </div>
             </div>
           )}
+          {initFailed && (
+            <div className="flex justify-center mt-4">
+              <button
+                onClick={() => initExam(exam)}
+                className="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors font-medium shadow-sm"
+              >
+                Újrapróbálkozás
+              </button>
+            </div>
+          )}
           <div ref={messagesEndRef} />
         </div>
       </main>
@@ -263,11 +282,11 @@ export const ExamScreen = () => {
               }}
               placeholder="Írd ide a válaszod... (Enter a küldéshez, Shift+Enter új sorhoz)"
               className="flex-1 p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none h-14"
-              disabled={isLoading || session.status === "finished"}
+              disabled={isLoading || session.status === "finished" || initFailed}
             />
             <button
               type="submit"
-              disabled={isLoading || !input.trim() || session.status === "finished"}
+              disabled={isLoading || !input.trim() || session.status === "finished" || initFailed}
               className="bg-blue-600 text-white p-4 rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
             >
               <Send className="w-5 h-5" />

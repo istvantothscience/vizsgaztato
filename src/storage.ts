@@ -27,17 +27,47 @@ export const deleteExamFromDb = async (id: string) => {
 
 export const loadSubmissions = async (): Promise<StudentSession[]> => {
   const { data, error } = await supabase.from('submissions').select('*');
+  
+  // Load local fallbacks
+  const localData = localStorage.getItem('local_submissions');
+  const localSubmissions: StudentSession[] = localData ? JSON.parse(localData) : [];
+
   if (error) {
-    console.error("Error loading submissions:", error);
-    return [];
+    console.error("Error loading submissions from Supabase:", error);
+    return localSubmissions;
   }
-  return data || [];
+  
+  // Merge Supabase and local submissions, preferring Supabase if IDs match
+  const allSubmissions = [...(data || [])];
+  for (const localSub of localSubmissions) {
+    if (!allSubmissions.find(s => s.id === localSub.id)) {
+      allSubmissions.push(localSub);
+    }
+  }
+  
+  return allSubmissions;
 };
 
 export const saveSubmission = async (submission: StudentSession) => {
+  // Always save locally as a fallback
+  try {
+    const localData = localStorage.getItem('local_submissions');
+    const localSubmissions: StudentSession[] = localData ? JSON.parse(localData) : [];
+    const existingIndex = localSubmissions.findIndex(s => s.id === submission.id);
+    if (existingIndex >= 0) {
+      localSubmissions[existingIndex] = submission;
+    } else {
+      localSubmissions.push(submission);
+    }
+    localStorage.setItem('local_submissions', JSON.stringify(localSubmissions));
+  } catch (e) {
+    console.error("Failed to save submission locally", e);
+  }
+
   const { error } = await supabase.from('submissions').upsert(submission);
   if (error) {
     console.error("Error saving submission:", error);
+    alert(`Figyelem! Az eredmény nem mentődött el a központi adatbázisba: ${error.message}. Kérlek, mindenképp töltsd le vagy küldd el e-mailben a tanárnak! (Helyileg elmentve)`);
   }
 };
 
