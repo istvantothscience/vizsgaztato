@@ -4,11 +4,12 @@ export const buildExamReport = (session: StudentSession, exam: ExamConfig): stri
   const date = new Date(session.startedAt).toLocaleString("hu-HU");
   const duration = Math.floor(session.elapsedSeconds / 60) + " perc " + (session.elapsedSeconds % 60) + " mp";
 
-  let report = `AI FIZIKA VIZSGA RIPORT\n`;
+  let report = `AI VIZSGA RIPORT - ${exam.subject.toUpperCase()}\n`;
   report += `========================================\n`;
   report += `Diák neve: ${session.studentName}\n`;
   if (session.className) report += `Osztály: ${session.className}\n`;
   report += `Vizsga címe: ${exam.title}\n`;
+  report += `Tantárgy: ${exam.subject}\n`;
   report += `Témakör: ${exam.topic}\n`;
   report += `Vizsga kezdete: ${date}\n`;
   report += `Időtartam: ${duration}\n`;
@@ -43,9 +44,9 @@ export const buildExamReport = (session: StudentSession, exam: ExamConfig): stri
   return report;
 };
 
-export const sendEmailReport = (session: StudentSession, exam: ExamConfig, teacherEmail: string = "tanar@iskola.hu") => {
+export const sendEmailReport = (session: StudentSession, exam: ExamConfig, teacherEmail: string = "istvan.toth@creascola.hu") => {
   const report = buildExamReport(session, exam);
-  const subject = encodeURIComponent(`AI fizika vizsga - ${session.studentName} - ${exam.title}`);
+  const subject = encodeURIComponent(`AI vizsga (${exam.subject}) - ${session.studentName} - ${exam.title}`);
   const body = encodeURIComponent(report);
   const mailtoLink = `mailto:${teacherEmail}?subject=${subject}&body=${body}`;
   window.open(mailtoLink, "_blank");

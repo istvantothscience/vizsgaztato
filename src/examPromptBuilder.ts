@@ -1,7 +1,7 @@
 import { ExamConfig, StudentSession, ChatMessage } from "./types";
 
 export const buildSystemPrompt = (exam: ExamConfig): string => {
-  return `Te egy 10. osztályos fizika tanár vagy, aki szóbeli vizsgáztatást tart magyar nyelven.
+  return `Te egy ${exam.gradeLevel} osztályos ${exam.subject} tanár vagy, aki szóbeli vizsgáztatást tart magyar nyelven.
 A vizsga témaköre: ${exam.topic}
 Tantárgy: ${exam.subject}, Évfolyam: ${exam.gradeLevel}
 

@@ -11,8 +11,8 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.j
 
 const DEFAULT_EXAM: ExamConfig = {
   id: "",
-  title: "Új Fizika Vizsga",
-  subject: "Fizika",
+  title: "Új Vizsga",
+  subject: "",
   gradeLevel: "10. osztály",
   topic: "",
   description: "",
@@ -100,6 +100,10 @@ export const ExamEditor = () => {
       alert("A vizsga címe kötelező!");
       return;
     }
+    if (!exam.subject.trim()) {
+      alert("A tantárgy megadása kötelező!");
+      return;
+    }
 
     if (exam.scoringMode === "custom") {
       const sum = exam.questionPoints.reduce((a, b) => a + b, 0);
@@ -157,6 +161,10 @@ export const ExamEditor = () => {
   const handleSaveAsCopy = async () => {
     if (!exam.title.trim()) {
       alert("A vizsga címe kötelező!");
+      return;
+    }
+    if (!exam.subject.trim()) {
+      alert("A tantárgy megadása kötelező!");
       return;
     }
 
@@ -299,7 +307,7 @@ export const ExamEditor = () => {
 
         {/* AI Beállítások */}
         <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-          <h2 className="text-lg font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">AI Vizsgáztató Beállításai</h2>
+          <h2 className="text-lg font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Vizsgabiztos Beállításai</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700 mb-1">Tanári Instrukciók az AI-nak</label>

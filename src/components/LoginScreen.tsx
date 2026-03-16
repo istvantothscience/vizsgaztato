@@ -12,7 +12,7 @@ export const LoginScreen = () => {
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden">
         <div className="p-8 text-center bg-blue-600 text-white">
           <BookOpen className="w-12 h-12 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold">AI Fizika Vizsgáztató</h1>
+          <h1 className="text-2xl font-bold">Vizsgabiztos</h1>
           <p className="text-blue-100 mt-2">10. osztályos szóbeli mini vizsga</p>
         </div>
 

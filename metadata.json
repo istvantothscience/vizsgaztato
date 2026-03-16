@@ -1,5 +1,5 @@
 {
-  "name": "Vizsgáztató applikáció",
-  "description": "AI alapú fizika vizsgáztató alkalmazás tanároknak és diákoknak.",
+  "name": "Vizsgabiztos",
+  "description": "AI alapú vizsgabiztos alkalmazás tanároknak és diákoknak.",
   "requestFramePermissions": []
 }
