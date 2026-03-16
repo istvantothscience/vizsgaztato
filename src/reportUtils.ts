@@ -44,12 +44,34 @@ export const buildExamReport = (session: StudentSession, exam: ExamConfig): stri
   return report;
 };
 
-export const sendEmailReport = (session: StudentSession, exam: ExamConfig, teacherEmail: string = "istvan.toth@creascola.hu") => {
+export const sendEmailReport = async (session: StudentSession, exam: ExamConfig, teacherEmail: string = "92istvantoth@gmail.com") => {
   const report = buildExamReport(session, exam);
-  const subject = encodeURIComponent(`AI vizsga (${exam.subject}) - ${session.studentName} - ${exam.title}`);
-  const body = encodeURIComponent(report);
-  const mailtoLink = `mailto:${teacherEmail}?subject=${subject}&body=${body}`;
-  window.open(mailtoLink, "_blank");
+  const subject = `AI vizsga (${exam.subject}) - ${session.studentName} - ${exam.title}`;
+  
+  try {
+    const response = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        to: teacherEmail,
+        subject: subject,
+        text: report
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Hiba történt az e-mail küldésekor.");
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Email küldési hiba:", error);
+    return { success: false, error: error.message };
+  }
 };
 
 export const downloadTextReport = (session: StudentSession, exam: ExamConfig) => {

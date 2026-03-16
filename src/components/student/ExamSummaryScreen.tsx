@@ -10,6 +10,8 @@ export const ExamSummaryScreen = () => {
   const navigate = useNavigate();
   const [session, setSession] = useState<StudentSession | null>(null);
   const [exam, setExam] = useState<ExamConfig | null>(null);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
   useEffect(() => {
     const init = async () => {
@@ -110,13 +112,38 @@ export const ExamSummaryScreen = () => {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <button
-            onClick={() => sendEmailReport(session, exam)}
-            className="flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors font-medium shadow-sm"
-          >
-            <Mail className="w-5 h-5" />
-            Eredmény Elküldése Tanárnak
-          </button>
+          <div className="flex flex-col items-center gap-2">
+            <button
+              onClick={async () => {
+                setIsSendingEmail(true);
+                setEmailStatus(null);
+                const result = await sendEmailReport(session, exam);
+                setIsSendingEmail(false);
+                if (result.success) {
+                  setEmailStatus({ type: 'success', message: 'E-mail sikeresen elküldve a tanárnak!' });
+                } else {
+                  setEmailStatus({ type: 'error', message: result.error || 'Hiba történt az e-mail küldésekor.' });
+                }
+              }}
+              disabled={isSendingEmail}
+              className={`flex items-center justify-center gap-2 text-white px-6 py-3 rounded-xl transition-colors font-medium shadow-sm w-full ${
+                isSendingEmail ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+              }`}
+            >
+              <Mail className="w-5 h-5" />
+              {isSendingEmail ? 'Küldés folyamatban...' : 'Eredmény Elküldése Tanárnak'}
+            </button>
+            {emailStatus && (
+              <div className={`text-sm text-center max-w-xs p-2 rounded-lg ${
+                emailStatus.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
+              }`}>
+                {emailStatus.message}
+              </div>
+            )}
+            <span className="text-xs text-slate-500 text-center max-w-xs">
+              Az eredmény automatikusan elküldésre kerül a tanár e-mail címére.
+            </span>
+          </div>
           
           <div className="flex gap-2">
             <button

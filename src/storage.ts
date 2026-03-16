@@ -37,8 +37,32 @@ export const loadSubmissions = async (): Promise<StudentSession[]> => {
     return localSubmissions;
   }
   
+  // Decode Supabase submissions
+  const decodedData = (data || []).map(sub => {
+    let finalSummary = sub.finalSummary;
+    let structuredScore = sub.structuredScore;
+    let messages = sub.messages || [];
+    
+    // Check if the last message contains the encoded data
+    if (messages.length > 0) {
+      const lastMsg = messages[messages.length - 1];
+      if (lastMsg.role === "system" && lastMsg.content === "__SUPABASE_ENCODED_DATA__") {
+        if (lastMsg.finalSummary) finalSummary = lastMsg.finalSummary;
+        if (lastMsg.structuredScore) structuredScore = lastMsg.structuredScore;
+        messages = messages.slice(0, -1);
+      }
+    }
+    
+    return {
+      ...sub,
+      messages,
+      finalSummary,
+      structuredScore
+    };
+  });
+
   // Merge Supabase and local submissions, preferring Supabase if IDs match
-  const allSubmissions = [...(data || [])];
+  const allSubmissions = [...decodedData];
   for (const localSub of localSubmissions) {
     if (!allSubmissions.find(s => s.id === localSub.id)) {
       allSubmissions.push(localSub);
@@ -64,7 +88,26 @@ export const saveSubmission = async (submission: StudentSession) => {
     console.error("Failed to save submission locally", e);
   }
 
-  const { error } = await supabase.from('submissions').upsert(submission);
+  // Encode for Supabase to avoid schema errors
+  const supabaseSubmission = { ...submission };
+  delete supabaseSubmission.finalSummary;
+  delete supabaseSubmission.structuredScore;
+  
+  if (submission.finalSummary || submission.structuredScore) {
+    supabaseSubmission.messages = [
+      ...submission.messages,
+      {
+        id: "sys-encoded-data",
+        role: "system",
+        content: "__SUPABASE_ENCODED_DATA__",
+        timestamp: Date.now(),
+        finalSummary: submission.finalSummary,
+        structuredScore: submission.structuredScore
+      } as any
+    ];
+  }
+
+  const { error } = await supabase.from('submissions').upsert(supabaseSubmission);
   if (error) {
     console.error("Error saving submission:", error);
     alert(`Figyelem! Az eredmény nem mentődött el a központi adatbázisba: ${error.message}. Kérlek, mindenképp töltsd le vagy küldd el e-mailben a tanárnak! (Helyileg elmentve)`);
