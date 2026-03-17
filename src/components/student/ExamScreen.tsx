@@ -6,6 +6,10 @@ import { startExamChat, sendStudentMessage } from "../../aiClient";
 import { FocusTracker } from "../../focusTracker";
 import { v4 as uuidv4 } from "uuid";
 import { Send, AlertTriangle, CheckCircle, Clock } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css";
 
 export const ExamScreen = () => {
   const { id } = useParams();
@@ -17,6 +21,74 @@ export const ExamScreen = () => {
   const [focusTracker, setFocusTracker] = useState<FocusTracker | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const lastInputRef = useRef<{ time: number; length: number; diff: number }[]>([]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    const now = Date.now();
+    const currentLength = newValue.length;
+    const previousLength = input.length;
+    const lengthDiff = currentLength - previousLength;
+
+    // Add current input event to history
+    lastInputRef.current.push({ time: now, length: currentLength, diff: lengthDiff });
+
+    // Remove events older than 1 second
+    lastInputRef.current = lastInputRef.current.filter((event) => now - event.time <= 1000);
+
+    // Calculate total characters added in the last second
+    const charsAddedInLastSecond = lastInputRef.current.reduce((sum, ev) => sum + Math.max(0, ev.diff), 0);
+
+    // Ha egy másodperc alatt (vagy egyetlen eseményben) legalább 10 karakter kerül beírásra
+    if (lengthDiff >= 10 || charsAddedInLastSecond >= 10) {
+      setSession((prev) => {
+        if (!prev) return prev;
+        const event = {
+          id: uuidv4(),
+          type: "cheat_detected" as any,
+          timestamp: Date.now(),
+          detail: "Gyanús szövegbevitel (lehetséges másolás)",
+        };
+        const updated = {
+          ...prev,
+          status: "finished" as const,
+          finishedAt: Date.now(),
+          focusLossCount: prev.focusLossCount + 1,
+          focusEvents: [...prev.focusEvents, event],
+          messages: [
+            ...prev.messages,
+            { id: uuidv4(), role: "system" as const, content: `Figyelem: Gyanús szövegbevitel (lehetséges másolás)! A vizsga azonnali hatállyal lezárásra került.`, timestamp: Date.now() },
+          ],
+          finalSummary: {
+            summaryText: "A vizsga gyanús tevékenység (másolás) miatt megszakítva.",
+            strengths: [],
+            improvements: ["Önálló munkavégzés"],
+            studyTip: "Kérjük, a vizsgákat önállóan, segédeszközök nélkül oldd meg."
+          },
+          structuredScore: {
+            questionPointsAwarded: [],
+            totalPoints: 0,
+            percentage: 0,
+            grade: 1
+          }
+        };
+        saveCurrentSession(updated);
+        
+        // Save to submissions and navigate
+        saveSubmission(updated).then(() => {
+          focusTracker?.stop();
+          navigate(`/exam/${exam?.id}/summary`);
+        });
+        
+        return updated;
+      });
+      // Reset history to avoid multiple triggers for the same event
+      lastInputRef.current = [];
+      return; // Stop processing input
+    }
+
+    setInput(newValue);
+  };
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -48,15 +120,42 @@ export const ExamScreen = () => {
       const tracker = new FocusTracker((event) => {
         setSession((prev) => {
           if (!prev) return prev;
+          
+          const newFocusLossCount = prev.focusLossCount + 1;
+          const isExcluded = newFocusLossCount >= 5;
+          
           const updated = {
             ...prev,
-            focusLossCount: prev.focusLossCount + 1,
+            status: isExcluded ? "finished" as const : prev.status,
+            finishedAt: isExcluded ? Date.now() : prev.finishedAt,
+            focusLossCount: newFocusLossCount,
             focusEvents: [...prev.focusEvents, event],
             messages: [
               ...prev.messages,
-              { id: uuidv4(), role: "system" as const, content: `Figyelem: Az oldal elvesztette a fókuszt! (${event.detail})`, timestamp: Date.now() },
+              { id: uuidv4(), role: "system" as const, content: isExcluded ? `Figyelem: Túl sok fókuszvesztés! A vizsga azonnali hatállyal lezárásra került.` : `Figyelem: Az oldal elvesztette a fókuszt! (${event.detail})`, timestamp: Date.now() },
             ],
           };
+          
+          if (isExcluded) {
+            updated.finalSummary = {
+              summaryText: "A vizsga gyanús tevékenység (túl sok fókuszvesztés) miatt megszakítva.",
+              strengths: [],
+              improvements: ["Önálló munkavégzés", "Koncentráció"],
+              studyTip: "Kérjük, a vizsgákat önállóan, az ablak elhagyása nélkül oldd meg."
+            };
+            updated.structuredScore = {
+              questionPointsAwarded: [],
+              totalPoints: 0,
+              percentage: 0,
+              grade: 1
+            };
+            
+            saveSubmission(updated).then(() => {
+              tracker.stop();
+              navigate(`/exam/${currentExam.id}/summary`);
+            });
+          }
+          
           saveCurrentSession(updated);
           return updated;
         });
@@ -241,7 +340,18 @@ export const ExamScreen = () => {
                     {msg.role === "student" ? session.studentName : "AI Tanár"} • {new Date(msg.timestamp).toLocaleTimeString("hu-HU", { hour: '2-digit', minute: '2-digit' })}
                   </div>
                 )}
-                <div className="whitespace-pre-wrap leading-relaxed">{msg.content}</div>
+                <div className={`leading-relaxed ${msg.role === "assistant" ? "prose prose-sm max-w-none prose-slate" : "whitespace-pre-wrap"}`}>
+                  {msg.role === "assistant" ? (
+                    <ReactMarkdown
+                      remarkPlugins={[remarkMath]}
+                      rehypePlugins={[rehypeKatex]}
+                    >
+                      {msg.content}
+                    </ReactMarkdown>
+                  ) : (
+                    msg.content
+                  )}
+                </div>
               </div>
             </div>
           ))}
@@ -273,7 +383,7 @@ export const ExamScreen = () => {
           <form onSubmit={handleSend} className="flex gap-3">
             <textarea
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={handleInputChange}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();

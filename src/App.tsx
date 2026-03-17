@@ -17,34 +17,41 @@ const ProtectedTeacherRoute = ({ children }: { children: React.ReactNode }) => {
 export default function App() {
   return (
     <Router>
-      <Routes>
-        <Route path="/" element={<LoginScreen />} />
-        
-        {/* Teacher Routes */}
-        <Route 
-          path="/teacher" 
-          element={
-            <ProtectedTeacherRoute>
-              <TeacherDashboard />
-            </ProtectedTeacherRoute>
-          } 
-        />
-        <Route 
-          path="/teacher/exam/:id" 
-          element={
-            <ProtectedTeacherRoute>
-              <ExamEditor />
-            </ProtectedTeacherRoute>
-          } 
-        />
+      <div className="min-h-screen flex flex-col">
+        <div className="flex-1">
+          <Routes>
+            <Route path="/" element={<LoginScreen />} />
+            
+            {/* Teacher Routes */}
+            <Route 
+              path="/teacher" 
+              element={
+                <ProtectedTeacherRoute>
+                  <TeacherDashboard />
+                </ProtectedTeacherRoute>
+              } 
+            />
+            <Route 
+              path="/teacher/exam/:id" 
+              element={
+                <ProtectedTeacherRoute>
+                  <ExamEditor />
+                </ProtectedTeacherRoute>
+              } 
+            />
 
-        {/* Student Routes */}
-        <Route path="/exam/:id" element={<ExamScreen />} />
-        <Route path="/exam/:id/summary" element={<ExamSummaryScreen />} />
-        
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+            {/* Student Routes */}
+            <Route path="/exam/:id" element={<ExamScreen />} />
+            <Route path="/exam/:id/summary" element={<ExamSummaryScreen />} />
+            
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </div>
+        <footer className="py-4 text-center">
+          <p className="text-sm text-slate-400 font-medium">made by schoollab</p>
+        </footer>
+      </div>
     </Router>
   );
 }

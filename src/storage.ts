@@ -8,7 +8,11 @@ export const loadExams = async (): Promise<ExamConfig[]> => {
     console.error("Error loading exams:", error);
     return [];
   }
-  return data || [];
+  
+  // Filter out the "10.osztályos szóbeli mini vizsga" as requested
+  const filteredData = (data || []).filter(exam => !exam.title.toLowerCase().includes("10.osztályos szóbeli mini vizsga") && !exam.title.toLowerCase().includes("10. osztályos szóbeli mini vizsga"));
+  
+  return filteredData;
 };
 
 export const saveExam = async (exam: ExamConfig) => {

@@ -45,10 +45,6 @@ export const LoginScreen = () => {
             <StudentEntryForm onBack={() => setRole(null)} />
           )}
         </div>
-        
-        <div className="bg-slate-50 p-4 text-center border-t border-slate-100">
-          <p className="text-sm text-slate-400 font-medium">made by schoollab</p>
-        </div>
       </div>
     </div>
   );

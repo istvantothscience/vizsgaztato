@@ -15,6 +15,8 @@ export class FocusTracker {
     window.addEventListener("focus", this.handleFocus);
     document.addEventListener("visibilitychange", this.handleVisibilityChange);
     document.addEventListener("fullscreenchange", this.handleFullscreenChange);
+    document.addEventListener("mouseleave", this.handleMouseLeave);
+    document.addEventListener("mouseenter", this.handleMouseEnter);
   }
 
   stop() {
@@ -22,10 +24,23 @@ export class FocusTracker {
     window.removeEventListener("focus", this.handleFocus);
     document.removeEventListener("visibilitychange", this.handleVisibilityChange);
     document.removeEventListener("fullscreenchange", this.handleFullscreenChange);
+    document.removeEventListener("mouseleave", this.handleMouseLeave);
+    document.removeEventListener("mouseenter", this.handleMouseEnter);
   }
 
   private handleBlur = () => {
     this.recordEvent("blur", "Ablak elvesztette a fókuszt");
+  };
+
+  private handleMouseLeave = (e: MouseEvent) => {
+    // Only trigger if the mouse actually left the browser viewport
+    if (e.clientY <= 0 || e.clientX <= 0 || e.clientX >= window.innerWidth - 1 || e.clientY >= window.innerHeight - 1) {
+      this.recordEvent("blur", "Egér elhagyta az ablakot (lehetséges megosztott képernyő)");
+    }
+  };
+
+  private handleMouseEnter = () => {
+    this.recordEvent("focus", "Egér visszatért az ablakba", false);
   };
 
   private handleFocus = () => {
